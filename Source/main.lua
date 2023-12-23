@@ -13,16 +13,19 @@ local rotationCooldown = nil
 local rotationCooldownTimer = nil
 local bubleSound = nil
 
+-- array to hold frames of sprite animation
+local playerImage = {}
+
 -- A function to set up our game environment.
 
 function myGameSetUp()
 
-    local playerImage
+    playerImage[0] =  gfx.image.new("Images/octopus3_48x64_01.png")
+    assert( playerImage[0] ) -- make sure the image was where we thought
+    playerImage[1] = gfx.image.new("Images/octopus3_48x64_extended.png")
+    assert( playerImage[1])
 
-    playerImage =  gfx.image.new("Images/octopus3_48x64_01.png")
-    assert( playerImage ) -- make sure the image was where we thought
-
-    playerSprite = gfx.sprite.new( playerImage )
+    playerSprite = gfx.sprite.new( playerImage[0] )
     playerSprite:moveTo( 200, 120 ) -- this is where the center of the sprite is placed; (200,120) is the center of the Playdate screen
     playerSprite:add() -- This is critical!
 
@@ -96,12 +99,17 @@ function getInput()
       local angle = playerSprite:getRotation()
       local accelerationVector = playdate.geometry.vector2D.newPolar(0.15, angle)
       playerVelocity:addVector( accelerationVector )
+      playerSprite:setImage(playerImage[1])
       buttonIsDown = true
     end
 
     if (playdate.buttonJustReleased(playdate.kButtonRight) or playdate.buttonJustReleased(playdate.kButtonLeft) ) then
       playerRotationalVelocity = 0
       rotationCooldown = 100
+    end
+
+    if playdate.buttonJustReleased(playdate.kButtonA) then
+      playerSprite:setImage(playerImage[0])
     end
 
     if playdate.buttonIsPressed( playdate.kButtonB ) then
@@ -153,10 +161,6 @@ function rotateToVertical(buttonIsDown)
     end
   end
 
-  if playerVelocity:magnitude() > 0 then
-    playerVelocity:scale(0.95)
-  end
-
 end
 
 function movePlayer() 
@@ -194,6 +198,12 @@ function movePlayer()
   end
   -- move player according to current velocity vector
   playerSprite:moveBy(playerVelocity.x,playerVelocity.y)
+
+  --simple function to add friction
+  if playerVelocity:magnitude() > 0 then
+    playerVelocity:scale(0.93)
+  end
+
 
 end
 
