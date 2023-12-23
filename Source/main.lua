@@ -6,21 +6,27 @@ local gfx <const> = playdate.graphics
 -- Here's our player sprite declaration. We'll scope it to this file because
 -- several functions need to access it.
 
-local playerSprite = nil
+local playerSprite = {}
 local playerVelocity = nil
 local playerRotationalVelocity = nil
 local rotationCooldown = nil
 local rotationCooldownTimer = nil
+local bubleSound = nil
+
 -- A function to set up our game environment.
 
 function myGameSetUp()
 
-    local playerImage = gfx.image.new("Images/octoSprite_001_48x48")
+    local playerImage
+
+    playerImage =  gfx.image.new("Images/octopus3_48x64_01.png")
     assert( playerImage ) -- make sure the image was where we thought
 
     playerSprite = gfx.sprite.new( playerImage )
     playerSprite:moveTo( 200, 120 ) -- this is where the center of the sprite is placed; (200,120) is the center of the Playdate screen
     playerSprite:add() -- This is critical!
+
+    bubbleSound = playdate.sound.sampleplayer.new("sounds/bubble_01.wav")
 
     playerVelocity = playdate.geometry.vector2D.new(0, 0)
     playerRotationalVelocity = 0 -- will represent degrees per frame (positive or negative)
@@ -55,6 +61,7 @@ function playdate.update()
 
     movePlayer() 
   
+    -- updates all sprites
     gfx.sprite.update()
 --    playdate.timer.updateTimers()
 
@@ -65,6 +72,11 @@ function getInput()
     -- Poll the d-pad and set movement vectors.
     local buttonIsDown = false
     local rotationMax = 10
+
+    --separate logic for sound fx
+    if playdate.buttonJustPressed(playdate.kButtonA) then
+      playSound("burst")
+    end
 
     if playdate.buttonIsPressed( playdate.kButtonRight ) then
       if math.abs(playerRotationalVelocity) < rotationMax then
@@ -87,12 +99,14 @@ function getInput()
       buttonIsDown = true
     end
 
-    if playdate.buttonJustReleased(playdate.kButtonRight) then
+    if (playdate.buttonJustReleased(playdate.kButtonRight) or playdate.buttonJustReleased(playdate.kButtonLeft) ) then
+      playerRotationalVelocity = 0
       rotationCooldown = 100
     end
 
     if playdate.buttonIsPressed( playdate.kButtonB ) then
       playerSprite:moveTo(200,120)
+      playerVelocity:scale(0)
     end
 
   return buttonIsDown
@@ -127,16 +141,18 @@ function rotateToVertical(buttonIsDown)
   end
 
   --start to return the octo to vertical orientation
-  if currentRotation > 180 then
-    local rotationPercent = (359-currentRotation) / 180
-    playerRotationalVelocity = 2 * rotationPercent
-  end
-  if currentRotation < 180 then
-    local rotationPercent = currentRotation / 180
-    playerRotationalVelocity = 2 * rotationPercent * -1
+  --don't do this if it's upside-down. It looks weird
+  if currentRotation < 90 or currentRotation > 270 then
+    if currentRotation > 180 then
+      local rotationPercent = (359-currentRotation) / 180
+      playerRotationalVelocity = 2 * rotationPercent
+    end
+    if currentRotation < 180 then
+      local rotationPercent = currentRotation / 180
+      playerRotationalVelocity = 2 * rotationPercent * -1
+    end
   end
 
---  playerRotationalVelocity *= .95
   if playerVelocity:magnitude() > 0 then
     playerVelocity:scale(0.95)
   end
@@ -152,19 +168,23 @@ function movePlayer()
 
   -- test for hitting the edges of the screen
   if playerSprite.x < 20 then
-    playerSprite.x = 20;
+    playerSprite:moveTo(23, playerSprite.y)
+    playerVelocity:scale(0)
     return
   end
   if playerSprite.y > 220 then
-    playerSprite.y = 220
+    playerSprite:moveTo(playerSprite.x, 218)
+    playerVelocity:scale(0)
     return
   end
   if playerSprite.y < 20 then
-    playerSprite.y = 20
+    playerSprite:moveTo(playerSprite.x, 22)
+    playerVelocity:scale(0)
     return
   end
-  if playerSprite.x > 368 then
-    playerSprite.x = 368
+  if playerSprite.x > 372 then
+    playerSprite:moveTo(370, playerSprite.y)
+    playerVelocity:scale(0)
   end
 
   -- clamp movement speed
@@ -174,6 +194,13 @@ function movePlayer()
   end
   -- move player according to current velocity vector
   playerSprite:moveBy(playerVelocity.x,playerVelocity.y)
+
+end
+
+function  playSound( soundString )
+  if( soundString == "burst") then
+    bubbleSound:playAt(0)
+  end
 
 end
 
