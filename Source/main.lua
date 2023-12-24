@@ -1,5 +1,6 @@
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
+import "CoreLibs/crank"
 
 local gfx <const> = playdate.graphics
 
@@ -15,6 +16,9 @@ local bubleSound = nil
 
 -- array to hold frames of sprite animation
 local playerImage = {}
+
+-- boost meter
+local boostMeter = nil
 
 -- A function to set up our game environment.
 
@@ -36,6 +40,8 @@ function myGameSetUp()
     rotationCooldown = 0
     rotationCooldownTimer = 0
 
+    boostMeter = 0
+
     local backgroundImage = gfx.image.new( "Images/kelp_400x240_background" )
     assert( backgroundImage )
 
@@ -56,17 +62,23 @@ function playdate.update()
 
   local buttonIsDown
 
-    -- take input and apply to player.
-    buttonIsDown = getInput()
+  -- take input and apply to player.
+  buttonIsDown = getInput()
 
-    -- function to rotate back to vertical
-    rotateToVertical(buttonIsDown)
+  -- function to rotate back to vertical
+  rotateToVertical(buttonIsDown)
 
-    movePlayer() 
-  
-    -- updates all sprites
-    gfx.sprite.update()
+  movePlayer() 
+
+  -- updates all sprites
+  gfx.sprite.update()
 --    playdate.timer.updateTimers()
+
+  -- boost meter test
+  playdate.graphics.fillRect(10,10,boostMeter,10)
+  if boostMeter > 0 then
+--    boostMeter -= 0.6
+  end
 
 end
 
@@ -97,9 +109,19 @@ function getInput()
 
     if playdate.buttonIsPressed( playdate.kButtonA ) then
       local angle = playerSprite:getRotation()
-      local accelerationVector = playdate.geometry.vector2D.newPolar(0.15, angle)
+      local pushAmount = 0.25
+      local boostMax = 400
+      local boostMaxProportion = 70
+      local boost = boostMeter / boostMax
+      if boost > 0 then
+        local boostAmount = 1 + boost * boostMaxProportion
+        print(boostAmount)
+        pushAmount *= boostAmount
+      end
+      local accelerationVector = playdate.geometry.vector2D.newPolar(pushAmount, angle)
       playerVelocity:addVector( accelerationVector )
       playerSprite:setImage(playerImage[1])
+      boostMeter = 0
       buttonIsDown = true
     end
 
@@ -116,6 +138,9 @@ function getInput()
       playerSprite:moveTo(200,120)
       playerVelocity:scale(0)
     end
+
+    boostMeter += playdate.getCrankTicks(36)
+
 
   return buttonIsDown
 
@@ -196,6 +221,7 @@ function movePlayer()
     playerVelocity:normalize()
     playerVelocity:scale(20)
   end
+
   -- move player according to current velocity vector
   playerSprite:moveBy(playerVelocity.x,playerVelocity.y)
 
