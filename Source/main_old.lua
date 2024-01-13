@@ -8,8 +8,6 @@ local gfx <const> = playdate.graphics
 -- several functions need to access it.
 
 local playerSprite = {}
-local bgSprite = nil
-local bgSpriteLeft = nil
 local playerVelocity = nil
 local playerRotationalVelocity = nil
 local rotationCooldown = nil
@@ -47,26 +45,14 @@ function myGameSetUp()
     local backgroundImage = gfx.image.new( "Images/kelp_400x240_background" )
     assert( backgroundImage )
 
-    bgSprite = gfx.sprite.new( backgroundImage )
-    bgSprite:setCenter(0,0)
-    bgSprite:setZIndex(-32767)
-    bgSprite:add()
-
-    bgSpriteLeft = gfx.sprite.new( backgroundImage )
-    bgSpriteLeft:setCenter(0,0)
-    bgSpriteLeft:setZIndex(-32767)
-    bgSpriteLeft:moveTo(-380,0)
-    bgSpriteLeft:add()
-
-  -- removing regular background callback in favor of sprite-based render
---[[    gfx.sprite.setBackgroundDrawingCallback(
+    gfx.sprite.setBackgroundDrawingCallback(
         function( x, y, width, height )
             -- x,y,width,height is the updated area in sprite-local coordinates
             -- The clip rect is already set to this area, so we don't need to set it ourselves
             backgroundImage:draw( 0, 0 )
         end
     )
-]]
+
 end
 
 myGameSetUp()
@@ -82,9 +68,9 @@ function playdate.update()
   -- function to rotate back to vertical
   rotateToVertical(buttonIsDown)
 
-  movePlayer()
+  movePlayer() 
 
-  -- updates all sprites, including draw
+  -- updates all sprites
   gfx.sprite.update()
 --    playdate.timer.updateTimers()
 
@@ -103,7 +89,7 @@ function getInput()
     local rotationMax = 10
 
     --separate logic for sound fx
-    if playdate.buttonJustPressed(playdate.kButtonA) or playdate.buttonIsPressed( playdate.kButtonUp ) then
+    if playdate.buttonJustPressed(playdate.kButtonA) then
       playSound("burst")
     end
 
@@ -121,7 +107,7 @@ function getInput()
       buttonIsDown = true
     end
 
-    if playdate.buttonIsPressed( playdate.kButtonA ) or playdate.buttonIsPressed( playdate.kButtonUp ) then
+    if playdate.buttonIsPressed( playdate.kButtonA ) then
       local angle = playerSprite:getRotation()
       local pushAmount = 0.25
       local boostMax = 400
@@ -144,7 +130,7 @@ function getInput()
       rotationCooldown = 100
     end
 
-    if playdate.buttonJustReleased(playdate.kButtonA) or playdate.buttonJustReleased(playdate.kButtonUp) then
+    if playdate.buttonJustReleased(playdate.kButtonA) then
       playerSprite:setImage(playerImage[0])
     end
 
@@ -237,9 +223,7 @@ function movePlayer()
   end
 
   -- move player according to current velocity vector
-  playerSprite:moveBy(0,playerVelocity.y)
-  bgSprite:moveBy(-playerVelocity.x,0)
-  bgSpriteLeft:moveBy(-playerVelocity.x,0)
+  playerSprite:moveBy(playerVelocity.x,playerVelocity.y)
 
   --simple function to add friction
   if playerVelocity:magnitude() > 0 then
